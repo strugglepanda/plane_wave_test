@@ -1,0 +1,335 @@
+(*----------Units----------
+The codes handles only dimensionless variables, normalized to \
+reference quantities.
+----------Basic reference quantities----------
+The speed of light, the elementary charge and the electron mass \
+provide the basis of the normalizations in this code:
+ \[FilledCircle] Reference electric charge Subscript[Q, r] = e ( the \
+elementary charge )
+ \[FilledCircle] Reference mass Subscript[M, r] = Subscript[m, e] ( \
+the electron mass )
+\[FilledCircle] Reference velocity Subscript[V, r] = c ( the speed of \
+light )
+We can derive from these:
+\[FilledCircle] a reference energy Subscript[K, r] = Subscript[m, e]c^2
+\[FilledCircle] a reference momentum Subscript[P, r] = Subscript[m, \
+e]c^2
+Even with these normalizations, this code does not know the scale of \
+the problem: it lacks a reference distance, or equivalently, a \
+reference time.
+----------Arbitrary reference quantities----------
+Instead of choosing a physical constant ( for example, the electron \
+radius ) as a reference, the scale of the problem is not decided a \
+priori, and the user is free to scale the result of the simulation to \
+any value. In fact, quantities are proportional an unknown reference \
+frequency Subscript[\[Omega], r], which can be scaled by the user a \
+posteriori.
+Usually, Subscript[\[Omega], r] will be an important frequency of the \
+problem. For example, if there is a laser, it could be the laser \
+frequency. Or it could be the electron plasma frequency.
+From this reference frequency Subscript[\[Omega], r], we define:
+    \[FilledCircle] a reference time Subscript[T, r] = 1/Subscript[\
+\[Omega], r]
+    \[FilledCircle] a reference length Subscript[L, r] = c/Subscript[\
+\[Omega], r]
+   \[FilledCircle] a reference electric field Subscript[E, r] = \
+Subscript[m, e]Subscript[c\[Omega], r]/e
+  \[FilledCircle] a reference magnetic field Subscript[B, r] = \
+Subscript[m, e]Subscript[\[Omega], r]/e
+ \[FilledCircle] a reference particle density Subscript[N, r] = \
+Subscript[\[CurlyEpsilon], 0]Subscript[m, e]\!\(
+\*SubsuperscriptBox[\(\[Omega]\), \(r\), \(2\)]/
+\*SuperscriptBox[\(e\), \(2\)]\)
+\[FilledCircle] a reference current Subscript[J, r] = \
+c*e*Subscript[N, r]
+Warning: 1/Subscript[N, r] is a volume, but counter-intuitively, it \
+is not equal to \!\(
+\*SubsuperscriptBox[\(L\), \(r\), \(3\)] . \[IndentingNewLine]\(--\(\
+--\(--\(--\(--Dimension\)\)\)\)\)\)-less form----------
+Normalizing all quantities to these references is convenient for \
+resolving Maxwell's equations, and the charges equation of motion, as \
+it converts them into a dimension-less set of equations:
+\[EmptyDownTriangle]\[CenterDot]E = \[Rho]     \[EmptyDownTriangle]\
+\[CenterDot]B = 0
+\[EmptyDownTriangle]\[Times]E = -\!\(
+\*SubscriptBox[\(\[PartialD]\), \(t\)]B\)     \[Del]\[Times]B = j + \
+\!\(
+\*SubscriptBox[\(\[PartialD]\), \(t\)]E\)
+\!\(
+\*SubscriptBox[\(\[PartialD]\), \(t\)]p\) = ZE + Zv\[Times]B
+where E, B, j and \[Rho] are the electric field, magnetic field, \
+current density and charge density, normalized to Subscript[E, r], \
+Subscript[B, r], Subscript[J, r] and Subscript[Q, r]Subscript[N, r], \
+respectively. Z and p are a particle's charge and momentum, \
+normalized to Subscript[Q, r] and Subscript[P, r], respectively. Note \
+that the temporal and spatial derivatives are also normalized to \
+Subscript[T, r] and Subscript[L, r], respectively. *)
+
+e = 1; (* The elementary charge is set as reference electric charge. *)
+
+
+Subscript[m, 0] = 1; (* The electron mass is set as reference mass. *)
+
+
+c = 1; (* The speed of light is set as reference velocity. *)
+\[Omega] = 
+  1; (* The laser frequency is set as the reference frequency. *)
+
+k = 1; (* k is the laser wave number. *)
+
+nonrelativistic = 0.001;(* non-relativistic case *)
+relativistic = 5;(* relativistic case *)
+LP = 1;(* linear polarization *)
+CP = 1/Sqrt[2];(* circular polarization *)
+
+A = {Ax, Ay, Az};(* vector potential *)
+\[Phi][t_] := \[Omega]*t - k*x[t];
+A[[1]][t_] := 0;
+A[[2]][t_] := \[Delta]*Subscript[E, 0]*Cos[\[Phi][t]];
+A[[3]][t_] := (1 - \[Delta]^2)^(1/2)*Subscript[E, 0]*Sin[\[Phi][t]];
+
+Elec = {Ex, Ey, Ez};
+B = {Bx, By, Bz};
+Elec[[1]][t_] := 0;
+Elec[[2]][t_] := 
+  Re[\[Omega]*\[Delta]*Subscript[E, 0]*Exp[I*(\[Phi][t] - Pi/2)]];
+Elec[[3]][t_] := 
+  Re[-\[Omega]*(1 - \[Delta]^2)^(1/2)*Subscript[E, 0]*
+    Exp[I*(\[Phi][t])]];
+B[[1]][t_] := 
+  Re[I/\[Omega]*
+    Curl[{0, \[Omega]*\[Delta]*Subscript[E, 0]*
+        Exp[I*(\[Phi][t] - Pi/2)], -\[Omega]*(1 - \[Delta]^2)^(1/2)*
+        Subscript[E, 0]*Exp[I*(\[Phi][t])]}, {x[t], y[t], z[t]}][[1]]];
+B[[2]][t_] := 
+  Re[I/\[Omega]*
+    Curl[{0, \[Omega]*\[Delta]*Subscript[E, 0]*
+        Exp[I*(\[Phi][t] - Pi/2)], -\[Omega]*(1 - \[Delta]^2)^(1/2)*
+        Subscript[E, 0]*Exp[I*(\[Phi][t])]}, {x[t], y[t], z[t]}][[2]]];
+B[[3]][t_] := 
+  Re[I/\[Omega]*
+    Curl[{0, \[Omega]*\[Delta]*Subscript[E, 0]*
+        Exp[I*(\[Phi][t] - Pi/2)], -\[Omega]*(1 - \[Delta]^2)^(1/2)*
+        Subscript[E, 0]*Exp[I*(\[Phi][t])]}, {x[t], y[t], z[t]}][[3]]];
+
+FQ = {FQx, FQy, FQz};
+FB = {FBx, FBy, FBz};
+FQ[[1]][t_] := -e*Elec[[1]][t];
+FQ[[2]][t_] := -e*Elec[[2]][t];
+FQ[[3]][t_] := -e*Elec[[3]][t];
+FB[[1]][t_] := -e*
+   Cross[{x'[t], y'[t], z'[t]}, {B[[1]][t], B[[2]][t], B[[3]][t]}][[
+    1]];
+FB[[2]][t_] := -e*
+   Cross[{x'[t], y'[t], z'[t]}, {B[[1]][t], B[[2]][t], B[[3]][t]}][[
+    2]];
+FB[[3]][t_] := -e*
+   Cross[{x'[t], y'[t], z'[t]}, {B[[1]][t], B[[2]][t], B[[3]][t]}][[
+    3]];
+
+Ene[t_] := 
+  Subscript[m, 0]*c^2*Sqrt[
+   1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)];
+
+(* -----Linear Polarization----- *)
+\[Delta] = LP;
+
+(* -----Non Relativistic Case----- *)
+Subscript[E, 0] = nonrelativistic;
+nT = 15;
+s = NDSolve[{p1'[t] == FB[[1]][t] + FQ[[1]][t],
+   p2'[t] == FB[[2]][t] + FQ[[2]][t],
+   p3'[t] == FB[[3]][t] + FQ[[3]][t],
+   x'[t] == p1[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   y'[t] == p2[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   z'[t] == p3[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   x[0] == -(Pi/2), p1[0] == 0, y[0] == Subscript[E, 0], p2[0] == 0, 
+   z[0] == 0, p3[0] == 0},
+  {x, y, z, p1, p2, p3}, {t, 0, nT}]
+
+Plot[Evaluate[x[t] /. s], {t, 0, nT}, PlotRange -> {{0, nT}, All}, 
+ AxesLabel -> {"t(\!\(\*SuperscriptBox[\(\[Omega]\), \(-1\)]\))", 
+   "x(\!\(\*SuperscriptBox[\(k\), \(-1\)]\))"}, 
+ LabelStyle -> {Black, Bold, Larger}, 
+ TicksStyle -> Directive[Black, Medium], PlotStyle -> Blue, 
+ ImageSize -> Large]
+(*
+Plot[Evaluate[y[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","y(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue,ImageSize\[Rule]Large]
+Plot[Evaluate[Subscript[E, \
+0]*Sin[\[Omega]*t+k*Pi/2]],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","y(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue,ImageSize\[Rule]Large]
+*)
+Plot[{Evaluate[y[t] /. s], 
+  Subscript[E, 0]*Sin[\[Omega]*t + k*Pi/2]}, {t, 0, nT}, 
+ Filling -> {1 -> {2}}]
+
+(*
+Plot[Evaluate[Ene[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{ \
+"t(\[Omega]^-1)","\[Gamma]"},LabelStyle\[Rule]{Black,Bold,Larger},\
+TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]Automatic]
+
+Plot[Evaluate[z[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","z(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+
+Plot[Evaluate[p1[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, x](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p2[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, y](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p3[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, z](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Black]
+*)
+
+(* -----Relativistic Case----- *)
+Subscript[E, 0] = relativistic;
+nT = 10;
+s = NDSolve[{p1'[t] == FB[[1]][t] + FQ[[1]][t],
+   p2'[t] == FB[[2]][t] + FQ[[2]][t],
+   p3'[t] == FB[[3]][t] + FQ[[3]][t],
+   x'[t] == p1[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   y'[t] == p2[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   z'[t] == p3[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   x[0] == 0, 
+   p1[0] == Subscript[E, 0]^2/(4*Sqrt[1 + Subscript[E, 0]^2/2]), 
+   y[0] == 0, p2[0] == Subscript[E, 0], z[0] == 0, p3[0] == 0},
+  {x, y, z, p1, p2, p3}, {t, 0, nT}]
+
+q = Subscript[E, 0]/(2*Sqrt[1 + Subscript[E, 0]^2/2]);
+Show[
+ ContourPlot[
+  16*y^2 == x^2*(4*q^2 - x^2), {x, -1.5, 1.5}, {y, -0.26, 0.26}, 
+  ImageSize -> {451, 92}, AspectRatio -> Full],
+ ParametricPlot[Evaluate[{y[t], x[t]} /. s], {t, 0, nT}, 
+  PlotTheme -> "Scientific", ImageSize -> Full, 
+  AxesLabel -> {HoldForm[Y], HoldForm[X]}, PlotLabel -> None, 
+  LabelStyle -> {GrayLevel[0], Bold}, PlotStyle -> Black]
+ ]
+Plot[Evaluate[z[t] /. s], {t, 0, nT}, PlotRange -> {{0, nT}, All}, 
+ AxesLabel -> {"t(\!\(\*SuperscriptBox[\(\[Omega]\), \(-1\)]\))", 
+   "z(\!\(\*SuperscriptBox[\(k\), \(-1\)]\))"}, 
+ LabelStyle -> {Black, Bold, Larger}, 
+ TicksStyle -> Directive[Black, Medium], PlotStyle -> Blue]
+(*
+Plot[Evaluate[Ene[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{ \
+"t(\[Omega]^-1)","\[Gamma]"},LabelStyle\[Rule]{Black,Bold,Larger},\
+TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]Automatic]
+
+Plot[Evaluate[x[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","x(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+Plot[Evaluate[y[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","y(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+Plot[Evaluate[z[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","z(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+
+Plot[Evaluate[p1[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, x](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p2[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, y](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p3[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, z](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Black]
+*)
+
+(* -----Circular Polarization----- *)
+\[Delta] = CP;
+Subscript[E, 0] = relativistic;
+nT = 100;
+q = Subscript[E, 0]/(2*Sqrt[1 + Subscript[E, 0]^2/2]);
+s = NDSolve[{p1'[t] == FB[[1]][t] + FQ[[1]][t],
+   p2'[t] == FB[[2]][t] + FQ[[2]][t],
+   p3'[t] == FB[[3]][t] + FQ[[3]][t],
+   x'[t] == p1[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   y'[t] == p2[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   z'[t] == p3[t]/(
+    Subscript[m, 0]*Sqrt[
+     1 + (p1[t]^2 + p2[t]^2 + p3[t]^2)/(Subscript[m, 0]^2*c^2)]),
+   x[0] == 0, p1[0] == 0, y[0] == 0, p2[0] == Subscript[E, 0]/Sqrt[2],
+    z[0] == -Sqrt[2]*q, p3[0] == 0},
+  {x, y, z, p1, p2, p3}, {t, 0, nT}]
+Show[
+ ContourPlot[
+  x^2 + y^2 == 2*q^2, {x, -Sqrt[2]*q, Sqrt[2]*q}, {y, -Sqrt[2]*q, 
+   Sqrt[2]*q}],
+ ParametricPlot[Evaluate[{y[t], z[t]} /. s], {t, 0, nT}, 
+  PlotTheme -> "Scientific", ImageSize -> Full, 
+  AxesLabel -> {HoldForm[Y], HoldForm[Z]}, PlotLabel -> None, 
+  LabelStyle -> {GrayLevel[0], Bold}, PlotStyle -> Black]
+ ]
+Plot[Evaluate[x[t] /. s], {t, 0, nT}, PlotRange -> {{0, nT}, All}, 
+ AxesLabel -> {"t(\!\(\*SuperscriptBox[\(\[Omega]\), \(-1\)]\))", 
+   "x(\!\(\*SuperscriptBox[\(k\), \(-1\)]\))"}, 
+ LabelStyle -> {Black, Bold, Larger}, 
+ TicksStyle -> Directive[Black, Medium], PlotStyle -> Blue]
+(*
+Plot[Evaluate[Ene[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{ \
+"t(\[Omega]^-1)","\[Gamma]"},LabelStyle\[Rule]{Black,Bold,Larger},\
+TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]Automatic]
+
+Plot[Evaluate[x[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","x(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+Plot[Evaluate[y[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","y(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+Plot[Evaluate[z[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","z(k^-1)"},LabelStyle\[Rule]{Black,\
+Bold,Larger},TicksStyle\[Rule]Directive[Black,Medium],PlotStyle\[Rule]\
+Blue]
+
+Plot[Evaluate[p1[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, x](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p2[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, y](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Blue]
+Plot[Evaluate[p3[t]/.s],{t,0,nT},PlotRange\[Rule]{{0,nT},All},\
+AxesLabel\[Rule]{"t(\[Omega]^-1)","Subscript[p, z](Subscript[m, 0]\
+\[Omega]k^-1)"},LabelStyle\[Rule]{Black,Bold,Larger},TicksStyle\[Rule]\
+Directive[Black,Medium],PlotStyle\[Rule]Black]
+*)
